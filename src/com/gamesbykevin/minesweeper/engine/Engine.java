@@ -147,6 +147,10 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
         getKeyboard().reset();
         getMouse().reset();
         
+        //if the manager already exists release resources
+        if (manager != null)
+            manager.dispose();
+        
         manager = new Manager(this);
     }
     
