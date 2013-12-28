@@ -193,8 +193,8 @@ public class Resources implements IResources
     }
     
     /**
-     * Set the audio enabled.
-     * All existing audio collections here will have the audio enabled value set.
+     * Set the audio enabled/disabled. <br>
+     * If the audio is disabled even when play() is called no audio will play.
      * 
      * @param boolean Is the audio enabled 
      */
@@ -234,6 +234,15 @@ public class Resources implements IResources
     public Audio getMenuAudio(final Object key)
     {
         return audio.get(TypeAudio.MenuAudio).get(key);
+    }
+    
+    /**
+     * Play game audio with no loop
+     * @param key 
+     */
+    public void playGameAudio(final Object key)
+    {
+        playGameAudio(key, false);
     }
     
     public void playGameAudio(final Object key, final boolean loop)

@@ -2,8 +2,12 @@ package com.gamesbykevin.minesweeper.board;
 
 import com.gamesbykevin.framework.base.Cell;
 import com.gamesbykevin.framework.base.Sprite;
+import com.gamesbykevin.framework.resources.Disposable;
 
 import com.gamesbykevin.minesweeper.board.tile.*;
+
+import com.gamesbykevin.minesweeper.resources.Resources;
+import com.gamesbykevin.minesweeper.resources.GameAudio.Keys;
 
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -13,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public final class Board extends Sprite
+public final class Board extends Sprite implements Disposable
 {
     //list of tiles on the board
     private List<Tile> tiles;
@@ -37,7 +41,7 @@ public final class Board extends Sprite
      * @param mines
      * @param random 
      */
-    public Board(final int columns, final int rows, int mines, final Random random, final int startX, final int startY)
+    public Board(final int columns, final int rows, int mines)
     {
         //create new list of tiles
         this.tiles = new ArrayList<>();
@@ -52,6 +56,37 @@ public final class Board extends Sprite
         
         //store the final number
         this.mines = mines;
+    }
+    
+    @Override
+    public void dispose()
+    {
+        super.dispose();
+        
+        for (Tile tile : tiles)
+        {
+            if (tile != null)
+                tile.dispose();
+            
+            tile = null;
+        }
+        
+        tiles.clear();
+        tiles = null;
+    }
+    
+    /**
+     * Create the board with the set dimensions/mines
+     * @param random Object used for random decisions
+     */
+    public void reset(final Random random)
+    {
+        //reset win/lose flags
+        this.solved = false;
+        this.lost = false;
+        
+        //clear list of tiles
+        this.tiles.clear();
         
         //each spot will be added to this list to determine possible mine locations
         List<Cell> cells = new ArrayList<>();
@@ -95,9 +130,6 @@ public final class Board extends Sprite
             //increase our count so we know when we have added enough mines
             count++;
         }
-        
-        //set locations of tiles
-        setLocations(startX, startY);
     }
     
     public int getRowCount()
@@ -116,7 +148,7 @@ public final class Board extends Sprite
      * @param startX starting x coordinate
      * @param startY starting y coordinate
      */
-    private void setLocations(final int startX, final int startY)
+    public void setLocations(final int startX, final int startY)
     {
         for (Tile tile : tiles)
         {
@@ -153,9 +185,8 @@ public final class Board extends Sprite
     }
     
     /**
-     * Get a random tile from the existing that have not been completed yet
-     * @param random Object used to make random decision
-     * @return Random tile that can be selected
+     * Get a List of tiles that have not been completed yet and are not flagged
+     * @return List of tiles that have not been completed yet and are not flagged
      */
     public List<Tile> getAvailableTiles()
     {
@@ -194,7 +225,7 @@ public final class Board extends Sprite
     }
     
     /**
-     * Get list of available neighbor tiles
+     * Get list of available neighbor tiles even if they are flagged
      * @param tile The that we want to check the neighbors
      * @return List of tiles that are not marked as completed
      */
@@ -265,7 +296,7 @@ public final class Board extends Sprite
      * @param point
      * @throws Exception 
      */
-    public void updateRightReleased(final Point point) throws Exception
+    public void updateRightReleased(final Point point, final Resources resources) throws Exception
     {
         for (Tile tile : tiles)
         {
@@ -276,11 +307,23 @@ public final class Board extends Sprite
             //are we within the tile
             if (tile.getRectangle().contains(point))
             {
+                if (tile.isCompleted())
+                {
+                    //play sound effect
+                    resources.playGameAudio(Keys.UnavailableSelection);
+                    
+                    //exit method because we can only select 1 tile at a time
+                    return;
+                }
+                
                 switch(tile.getState())
                 {
                     case Blank:
                     case BlankPress:
                         tile.setState(Tile.State.Flag);
+                        
+                        //play sound effect
+                        resources.playGameAudio(Keys.FlagTile);
                         break;
                         
                     case Flag:
@@ -299,17 +342,26 @@ public final class Board extends Sprite
         }
     }
     
-    public void updateReleased(final Point point) throws Exception
+    public void updateReleased(final Point point, final Resources resources) throws Exception
     {
         for (Tile tile : tiles)
         {
-            //tile can no longer be selected or is flagged
             if (tile.isCompleted() || tile.isFlagged())
                 continue;
             
             //are we within the tile
             if (tile.getRectangle().contains(point))
             {
+                //tile can no longer be selected or is flagged
+                if (tile.isCompleted() || tile.isFlagged())
+                {
+                    //play sound effect
+                    resources.playGameAudio(Keys.UnavailableSelection);
+                    
+                    //exit method because we can select only one tile
+                    return;
+                }
+                
                 //did the player select a mine
                 if (tile.isMine())
                 {
@@ -331,6 +383,17 @@ public final class Board extends Sprite
                     
                     //mark as completed so we can no longer select again
                     tile.setCompleted(count);
+                    
+                    if (count == 0)
+                    {
+                        //play sound effect
+                        resources.playGameAudio(Keys.Opening);
+                    }
+                    else
+                    {
+                        //play sound effect
+                        resources.playGameAudio(Keys.SelectTile);
+                    }
                     
                     //if this is a blank tile we need to open the tiles up around it
                     if (count == 0)

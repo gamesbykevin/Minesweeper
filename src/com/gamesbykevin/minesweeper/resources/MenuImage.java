@@ -17,9 +17,15 @@ public class MenuImage extends ImageManager
     
     public enum Keys
     {
-        TitleScreen, Credits, AppletFocus, TitleBackground, Mouse, MouseDrag, 
+        TitleScreen, 
+        Credits, 
+        AppletFocus, 
+        TitleBackground, 
+        OptionBackground, 
+        Mouse, MouseDrag, 
         Controls1,  
         Instructions1,  
+        Instructions2,  
     }
     
     public MenuImage() throws Exception

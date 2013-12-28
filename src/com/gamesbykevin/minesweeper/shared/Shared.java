@@ -13,21 +13,21 @@ import java.awt.image.BufferedImage;
 public class Shared 
 {
     //these dimensions is the size of the game window the user will see
-    public static final int INITIAL_WIDTH  = 750;
+    public static final int INITIAL_WIDTH  = 775;
     public static final int INITIAL_HEIGHT = 480;
     
-    //the game is programmed in these dimensions
-    public static final int ORIGINAL_WIDTH  = 750;
+    //the game is originally programmed for these dimensions
+    public static final int ORIGINAL_WIDTH  = 775;
     public static final int ORIGINAL_HEIGHT = 480;
     
     //show UPS/FPS counters
     public static final boolean DEBUG = true;
     
     //how many updates per second, controls speed of game
-    public static final int DEFAULT_UPS = 90;
+    public static final int DEFAULT_UPS = 600;
     
     //how many frames per second, controls how many images are rendered
-    public static final int DEFAULT_FPS = 30;
+    public static final int DEFAULT_FPS = 60;
     
     //what is the name of our game
     public static final String GAME_NAME = "Minesweeper";

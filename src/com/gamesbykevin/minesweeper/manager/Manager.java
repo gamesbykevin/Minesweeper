@@ -1,8 +1,6 @@
 package com.gamesbykevin.minesweeper.manager;
 
 import com.gamesbykevin.framework.menu.Menu;
-import com.gamesbykevin.framework.resources.Disposable;
-import com.gamesbykevin.framework.util.Timers;
 
 import com.gamesbykevin.minesweeper.engine.Engine;
 import com.gamesbykevin.minesweeper.menu.CustomMenu.*;
@@ -14,25 +12,49 @@ import com.gamesbykevin.minesweeper.shared.IElement;
 import com.gamesbykevin.minesweeper.player.*;
 
 import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.Rectangle;
 import java.util.Random;
 
 /**
  * The parent class that contains all of the game elements
  * @author GOD
  */
-public final class Manager implements Disposable, IElement
+public final class Manager implements IElement
 {
     //seed used to generate random numbers
     private final long seed = System.nanoTime();
     
     //random number generator object
-    private final Random random = new Random(seed);
+    private Random random = new Random(seed);
     
     //our player object
-    private final Human human;
+    private Human human;
     
     //our artificial intelligence agent
-    private final Agent agent;
+    private Agent agent;
+    
+    //store the game type we are playing
+    private Mode.Types mode;
+    
+    //the size of the orginal screen
+    private Rectangle screen;
+    
+    //the background image
+    private Image background;
+    
+    //has the game ended yet
+    private boolean gameover = false;
+    
+    //the number of wins needed when playing race mode
+    private static final int WIN_LIMIT = 1000;
+    
+    private int TEMPORARY_LOSS_COUNT = 0;
+    
+    //status message that notifys the user how to access the menu
+    private static final String DEFAULT_MENU_STATUS_MESSAGE = "Hit \"Esc\" for menu";
+    
+    private static final String HIT_MINE_DEFAULT_MESSAGE = "Hit mine. Board reset";
     
     /**
      * Constructor for Manager, this is the point where we load any menu option configurations
@@ -41,24 +63,66 @@ public final class Manager implements Disposable, IElement
      */
     public Manager(final Engine engine) throws Exception
     {
+        //store the size of the screen
+        screen = new Rectangle(engine.getMain().getScreen());
+        
+        //get the background image
+        background = engine.getResources().getGameImage(Keys.Background);
+        
         //get the menu object
         final Menu menu = engine.getMenu();
         
-        //final int modeIndex = menu.getOptionSelectionIndex(LayerKey.Options, OptionKey.Mode);
+        //get the index 
+        final int modeIndex = menu.getOptionSelectionIndex(LayerKey.Options, OptionKey.Mode);
 
-        /*
-        9 X 9, 10 mines
-        16 X 16, 40 mines
-        22 X 22, 99 mines        
-        */
+        //get the game mode selected
+        this.mode = Mode.Types.values()[modeIndex];
         
-        final int columns = 9;
-        final int rows = 9;
-        final int mines = 10;
-
-        //size of the player window including board and misc area
-        int width = (columns * 17);
-        int height = (rows * 16) + 50;
+        //get the difficulty selection of the board
+        final int boardDifficultyIndex = menu.getOptionSelectionIndex(LayerKey.Options, OptionKey.BoardDifficulty);
+        
+        //default board size
+        int columns = 9;
+        int rows = 9;
+        int mines = 10;
+        
+        //determine board specs
+        switch(BoardDifficulty.Selections.values()[boardDifficultyIndex])
+        {
+            case Beginner:
+                columns = 9;
+                rows = 9;
+                mines = 10;
+                break;
+                
+            case Intermediate:
+                columns = 16;
+                rows = 16;
+                mines = 40;
+                break;
+                
+            case Expert:
+                columns = 22;
+                rows = 22;
+                mines = 99;
+                break;
+        }
+        
+        //dimensions of our puzzle
+        int width, height;
+        
+        if (columns < 16 || rows < 16)
+        {
+            //size of the player window including board and misc area
+            width = (16 * 17);
+            height = (16 * 16) + 50;
+        }
+        else
+        {
+            //size of the player window including board and misc area
+            width = (columns * 17);
+            height = (rows * 16) + 50;
+        }
         
         //make sure minimum dimensions are set
         if (width < 200)
@@ -66,11 +130,44 @@ public final class Manager implements Disposable, IElement
         if (height < 200)
             height = 200;
         
+        //start y coordinate for player(s)
+        final int startY = 5;
+        
+        //check the mode
+        switch(mode)
+        {
+            case Versus:
+            case Race:
+                
+                //get the difficulty selection
+                final int opponentDifficultyIndex = menu.getOptionSelectionIndex(LayerKey.Options, OptionKey.OpponentDifficulty);
+                
+                agent = new Agent(width, height, OpponentDifficulty.Selections.values()[opponentDifficultyIndex]);
+                agent.setLocation(screen.x + (screen.width / 2) + (screen.width / 4) - (width / 2), startY);
+                agent.createBoard(columns, rows, mines, random);
+                agent.setImage(engine.getResources().getGameImage(Keys.Original));
+                
+                break;
+        }
+        
         //create new player
         human = new Human(width, height);
         
         //set the location where the player image will be drawn
-        human.setLocation(0, 0);
+        if (agent != null)
+        {
+            //human will be on the left side
+            human.setLocation(screen.x + (screen.width / 4) - (width / 2), startY);
+        }
+        else
+        {
+            //place human in the middle of the screen
+            human.setLocation(screen.x + (screen.width / 2) - (width / 2), startY);
+            
+            //set the timer if timed mode
+            if (mode == Mode.Types.Timed)
+                human.setTimer(BoardDifficulty.Selections.values()[boardDifficultyIndex].getDelay());
+        }
         
         //set the size of the board
         human.createBoard(columns, rows, mines, random);
@@ -78,29 +175,24 @@ public final class Manager implements Disposable, IElement
         //set the sprite sheet image
         human.setImage(engine.getResources().getGameImage(Keys.Original));
         
-        //time to wait between each pixel movement for our opponent(s)
-        final long delay = Timers.toNanoSeconds(50L);
+        //play new game sound effect
+        engine.getResources().playGameAudio(GameAudio.Keys.NewGame);
         
-        agent = new Agent(width, height, delay);
-        agent.setLocation(width, 0);
-        agent.createBoard(columns, rows, mines, random);
-        agent.setImage(engine.getResources().getGameImage(Keys.Original));
-        
-        //dict = new Dictionary(engine.getResources().getGameText(GameText.Keys.Words));
-        
-        //create new instance
-        //enemies = new EnemyManager(engine.getResources().getGameImage(Keys.EnemiesSpriteSheet));
-        
-        //the speed of the characters
-        //final int speedIndex = menu.getOptionSelectionIndex(LayerKey.Options, OptionKey.Speed);
-        
-        //the image containing all the sprite images
-        //final Image image = engine.getResources().getGameImage(GameImage.Keys.SpriteSheet);
-        
-        //the time delay per update
-        //final long time = engine.getMain().getTime();
-        
-        System.out.println(seed);
+        System.out.println("Seed - " + seed);
+    }
+    
+    /**
+     * Has the game ended? Used to prevent continuous updates
+     * @return True if game is over regardless of win/lose
+     */
+    private boolean hasGameOver()
+    {
+        return this.gameover;
+    }
+    
+    private void flagGameOver()
+    {
+        this.gameover = true;
     }
     
     /**
@@ -118,7 +210,26 @@ public final class Manager implements Disposable, IElement
     @Override
     public void dispose()
     {
+        random = null;
         
+        if (human != null)
+            human.dispose();
+        
+        human = null;
+        
+        if (agent != null)
+            agent.dispose();
+        
+        agent = null;
+        
+        mode = null;
+        
+        screen = null;
+        
+        if (background != null)
+            background.flush();
+        
+        background = null;
     }
     
     /**
@@ -130,32 +241,248 @@ public final class Manager implements Disposable, IElement
     @Override
     public void update(final Engine engine) throws Exception
     {
+        if (hasGameOver())
+            return;
+        
         if (human != null)
-        {
-            human.update(engine.getMouse(), engine.getMain().getTime());
-        }
+            human.update(engine);
         
         if (agent != null)
+            agent.update(engine);
+        
+        //check if the game has ended depending on the game mode
+        checkMode(engine.getResources());
+    }
+    
+    /**
+     * Check if the human/computer win/lose depending on the game mode.<br>
+     * We will also determine the display status message
+     */
+    private void checkMode(final Resources resources)
+    {
+        //if there is a computer agent preset we are either playing versus or race
+        if (agent != null)
         {
-            agent.update(engine.getMain().getTime(), random);
-            
-            //if the human game ended determine the winner
+            switch (mode)
+            {
+                case Versus:
+                    
+                    //if the human has a game over check for win/lose
+                    if (human.hasGameOver())
+                    {
+                        if (human.hasWin())
+                        {
+                            //play sound effect
+                            resources.playGameAudio(GameAudio.Keys.Win);
+                            
+                            //add status message
+                            human.addStatusMessage("You win");
+                            human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
+                            
+                            //mark flag so correct icon is displayed
+                            agent.markLose();
+
+                            //mark game over
+                            flagGameOver();
+                        }
+
+                        if (human.hasLose())
+                        {
+                            //play sound effect
+                            resources.playGameAudio(GameAudio.Keys.Lose);
+                            
+                            //add status message
+                            agent.addStatusMessage("CPU wins");
+                            human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
+                            
+                            //mark flag so correct icon is displayed
+                            agent.markWin();
+
+                            //mark game over
+                            flagGameOver();
+                        }
+                    }
+                    else
+                    {
+                        //if the agent has a game over check for win/lose
+                        if (agent.hasGameOver())
+                        {
+                            if (agent.hasWin())
+                            {
+                                //play sound effect
+                                resources.playGameAudio(GameAudio.Keys.Lose);
+                                
+                                //add status message
+                                agent.addStatusMessage("CPU wins");
+                                human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
+                                
+                                //mark flag so correct icon is displayed
+                                human.markLose();
+
+                                //mark game over
+                                flagGameOver();
+                            }
+
+                            if (agent.hasLose())
+                            {
+                                //play sound effect
+                                resources.playGameAudio(GameAudio.Keys.Win);
+                                
+                                //add status message
+                                human.addStatusMessage("You win");
+                                human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
+                                
+                                //mark flag so correct icon is displayed
+                                human.markWin();
+
+                                //mark game over
+                                flagGameOver();
+                            }
+                        }
+                    }
+                    break;
+
+                case Race:
+
+                    //check if the human has won/lost
+                    if (human.hasGameOver())
+                    {
+                        if (human.hasWin())
+                        {
+                            //play sound effect
+                            resources.playGameAudio(GameAudio.Keys.Win);
+                            
+                            //increase the win count and create a new board
+                            human.increaseWins();
+                            
+                            //add status message
+                            human.addStatusMessage("Solved puzzle. Wins: " + human.getWins());
+                            
+                            //if the human has reached the number of wins then the agent has lost the game
+                            if (human.getWins() >= WIN_LIMIT)
+                            {
+                                //add status message
+                                agent.addStatusMessage("You won. Game Over");
+                                human.addStatusMessage("Winner");
+                                human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
+                                
+                                //mark flag so correct icon is displayed
+                                agent.markLose();
+
+                                //mark game over
+                                flagGameOver();
+                            }
+                            else
+                            {
+                                //else generate a new board
+                                human.reset(random);
+                            }
+                        }
+                        else
+                        {
+                            //add status message
+                            human.addStatusMessage(HIT_MINE_DEFAULT_MESSAGE);
+                            
+                            //reset board
+                            human.reset(random);
+                        }
+                    }
+                    else
+                    {
+                        //check if the agent has won/lost
+                        if (agent.hasGameOver())
+                        {
+                            if (agent.hasWin())
+                            {
+                                //increase the win count and create a new board
+                                agent.increaseWins();
+                                
+                                //add status message
+                                agent.addStatusMessage("Solved. Wins: " + agent.getWins());
+                                
+                                System.out.println("Win: " + agent.getWins() + ", Loss: " + this.TEMPORARY_LOSS_COUNT);
+                                
+                                //if the agent has reached the number of wins then the human has lost the game
+                                if (agent.getWins() >= WIN_LIMIT)
+                                {
+                                    //add status message
+                                    agent.addStatusMessage("CPU won. Game Over");
+                                    human.addStatusMessage("Loser");
+                                    human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
+                                    
+                                    //mark flag so correct icon is displayed
+                                    human.markLose();
+
+                                    //mark game over
+                                    flagGameOver();
+                                    
+                                    //play sound effect
+                                    resources.playGameAudio(GameAudio.Keys.Lose);
+                                }
+                                else
+                                {
+                                    //play sound effect
+                                    resources.playGameAudio(GameAudio.Keys.Win);
+                                
+                                    //generate a new board
+                                    agent.reset(random);
+                                }
+                            }
+                            else
+                            {
+                                TEMPORARY_LOSS_COUNT++;
+                                
+                                System.out.println("Win: " + agent.getWins() + ", Loss: " + this.TEMPORARY_LOSS_COUNT);
+                                
+                                //add status message
+                                agent.addStatusMessage(HIT_MINE_DEFAULT_MESSAGE);
+
+                                //reset board
+                                agent.reset(random);
+                                
+                                
+                            }
+                        }
+                    }
+                    break;
+            }
+        }
+        else
+        {
+            //if there is no opponent we are playing single player human
             if (human.hasGameOver())
             {
-                if (human.getBoard().hasSolved())
-                    agent.getBoard().setLose();
-                if (human.getBoard().hasLost())
-                    agent.getBoard().setWin();
-            }
-            else
-            {
-                //if the agent game ended determine the winner
-                if (agent.hasGameOver())
+                //mark game over
+                flagGameOver();
+                
+                if (human.hasWin())
                 {
-                    if (agent.getBoard().hasSolved())
-                        human.getBoard().setLose();
-                    if (agent.getBoard().hasLost())
-                        human.getBoard().setWin();
+                    //play sound effect
+                    resources.playGameAudio(GameAudio.Keys.Win);
+                    
+                    //add status message
+                    human.addStatusMessage("Winner");
+                    human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
+                }
+                else
+                {
+                    //play sound effect
+                    resources.playGameAudio(GameAudio.Keys.Lose);
+                    
+                    //if the time is counting down and time has passed
+                    if (human.getTimer().getReset() != 0 && human.getTimer().hasTimePassed())
+                    {
+                        //add status message
+                        human.addStatusMessage("You lose, times up");
+                    }
+                    else
+                    {
+                        //add status message
+                        human.addStatusMessage("You lose");
+                    }
+                    
+                    //add status message
+                    human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
                 }
             }
         }
@@ -168,14 +495,24 @@ public final class Manager implements Disposable, IElement
     @Override
     public void render(final Graphics graphics)
     {
-        if (human != null)
+        //draw background if exists
+        if (background != null)
         {
-            human.render(graphics);
+            graphics.drawImage(background, screen.x, screen.y, screen.width, screen.height, null);
         }
         
+        //draw opponent if exists
         if (agent != null)
         {
+            //draws object board/info and status screen
             agent.render(graphics);
+        }
+        
+        //draw human if exists
+        if (human != null)
+        {
+            //draws object board/info and status screen
+            human.render(graphics);
         }
     }
 }

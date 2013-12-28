@@ -23,7 +23,7 @@ public final class Options extends Layer implements LayerRules
         setTitle("Options");
         
         //set the background image of the Layer
-        setImage(engine.getResources().getMenuImage(MenuImage.Keys.TitleBackground));
+        setImage(engine.getResources().getMenuImage(MenuImage.Keys.OptionBackground));
         
         //what is the duration of the current layer
         setTimer(new Timer(Timers.toNanoSeconds(5000L)));
@@ -40,9 +40,12 @@ public final class Options extends Layer implements LayerRules
         Audio audio = engine.getResources().getMenuAudio(MenuAudio.Keys.OptionChange);
         
         //add options
-        super.add(OptionKey.Mode,           new Mode(audio));
-        super.add(OptionKey.Sound,          new Sound(audio));
-        super.add(OptionKey.FullScreen,     new FullScreen(audio));
-        super.add(OptionKey.GoBack,         new OptionsGoBack());
+        super.add(OptionKey.BoardDifficulty,        new BoardDifficulty(audio));
+        super.add(OptionKey.Mode,                   new Mode(audio));
+        super.add(OptionKey.OpponentDifficulty,     new OpponentDifficulty(audio));
+        super.add(OptionKey.Sound,                  new Sound(audio));
+        super.add(OptionKey.FullScreen,             new FullScreen(audio));
+        super.add(OptionKey.GoBack,                 new OptionsGoBack());
+        
     }
 }

@@ -2,11 +2,12 @@ package com.gamesbykevin.minesweeper.board.tile;
 
 import com.gamesbykevin.framework.base.Sprite;
 import com.gamesbykevin.framework.base.Animation;
+import com.gamesbykevin.framework.resources.Disposable;
 
 import java.awt.Graphics;
 import java.awt.Image;
 
-public class Tile extends Sprite
+public abstract class Tile extends Sprite implements Disposable
 {
     //is the tile a mine
     private boolean mine = false;
@@ -64,6 +65,12 @@ public class Tile extends Sprite
         
         //create sprite sheet for our animations
         super.createSpriteSheet();
+    }
+    
+    @Override
+    public void dispose()
+    {
+        super.dispose();
     }
     
     /**

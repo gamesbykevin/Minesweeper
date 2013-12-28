@@ -1,7 +1,7 @@
 package com.gamesbykevin.minesweeper.player;
 
 import com.gamesbykevin.framework.base.Sprite;
-
+import com.gamesbykevin.framework.resources.Disposable;
 import com.gamesbykevin.framework.util.Timer;
 import com.gamesbykevin.framework.util.Timers;
 
@@ -14,7 +14,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.Random;
 
-public class Player extends Sprite
+public abstract class Player extends Sprite implements Disposable
 {
     //the board where the mines will be
     private Board board;
@@ -47,13 +47,25 @@ public class Player extends Sprite
     protected static final int MOUSE_OFFSET_Y = 0;
     
     //the starting position where the tiles will be drawn
-    private static final int BOARD_START_X = 0;
-    private static final int BOARD_START_Y = 50;
+    private static final int BOARD_START_X = 10;
+    private static final int BOARD_START_Y = 45;
     
-    protected Player(final int width, final int height)
+    //is this player human
+    private final boolean human;
+    
+    //how many puzzles has this player solved
+    private int wins = 0;
+    
+    //where status messages will be displayed for this user
+    private Status status;
+    
+    protected Player(final int width, final int height, final boolean human)
     {
         //set the dimensions of our overall image
         super.setDimensions(width, height);
+        
+        //is this player human
+        this.human = human;
         
         //create new transparent image with width height
         this.image = new BufferedImage((int)getWidth(), (int)getHeight(), BufferedImage.TYPE_INT_ARGB);
@@ -65,7 +77,7 @@ public class Player extends Sprite
         this.infoLocation = new Point(10, 40);
         
         //where to show result
-        this.resultLocation = new Point(130, 10);
+        this.resultLocation = new Point(130, 05);
         
         //the mouse location
         this.mouseLocation = new Point();
@@ -77,6 +89,65 @@ public class Player extends Sprite
         
         //create our timer object
         this.timer = new Timer();
+        
+        //create new status object
+        this.status = new Status();
+    }
+    
+    @Override
+    public void dispose()
+    {
+        super.dispose();
+        
+        board.dispose();
+        board = null;
+        
+        timer = null;
+    
+        image.flush();
+        image = null;
+    
+        status.dispose();
+        status = null;
+    }
+    
+    /**
+     * Increase the number of wins by 1
+     */
+    public void increaseWins()
+    {
+        this.wins++;
+    }
+    
+    /**
+     * Get the number of wins this player has
+     * @return The total number of wins
+     */
+    public int getWins()
+    {
+        return this.wins;
+    }
+    
+    /**
+     * Set the timer here because we are playing timed mode
+     * @param delay The time to count down
+     */
+    public void setTimer(final long delay)
+    {
+        //set the reset value
+        getTimer().setReset(delay);
+        
+        //then reset that time
+        getTimer().reset();
+    }
+    
+    /**
+     * Get the timer
+     * @return The timer that is keeping track of time remaining/passed
+     */
+    public Timer getTimer()
+    {
+        return this.timer;
     }
     
     /**
@@ -88,8 +159,25 @@ public class Player extends Sprite
      */
     public void createBoard(final int columns, final int rows, int mines, final Random random)
     {
-        //create board
-        this.board = new Board(columns, rows, mines, random, BOARD_START_X, BOARD_START_Y);
+        //create board object and set default size/mines
+        this.board = new Board(columns, rows, mines);
+        
+        //create the board
+        reset(random);
+    }
+    
+    /**
+     * Add status message
+     * @param message 
+     */
+    public void addStatusMessage(final String message)
+    {
+        getStatus().add(message);
+    }
+    
+    private Status getStatus()
+    {
+        return this.status;
     }
     
     protected Point getMouseLocation()
@@ -97,7 +185,48 @@ public class Player extends Sprite
         return this.mouseLocation;
     }
     
-    public Board getBoard()
+    public void reset(final Random random)
+    {
+        //generate new board
+        getBoard().reset(random);
+        
+        //set locations of tiles
+        getBoard().setLocations(BOARD_START_X, BOARD_START_Y);
+    }
+    
+    /**
+     * Has the player solved the board
+     * @return True if the board has been solved, false otherwise
+     */
+    public boolean hasWin()
+    {
+        return getBoard().hasSolved();
+    }
+    
+    /**
+     * Has the player hit a mine.
+     * @return True if so, false otherwise
+     */
+    public boolean hasLose()
+    {
+        return getBoard().hasLost();
+    }
+    
+    public void markLose()
+    {
+        getBoard().setLose();
+    }
+    
+    public void markWin()
+    {
+        getBoard().setWin();
+    }
+    
+    /**
+     * Get the game board
+     * @return Board in play
+     */
+    protected Board getBoard()
     {
         return this.board;
     }
@@ -113,11 +242,11 @@ public class Player extends Sprite
     
     /**
      * Has the game ended for this player
-     * @return true is the player lost or won, false if still playing
+     * @return true is the has player lost or won, false if still playing
      */
     public boolean hasGameOver()
     {
-        return (getBoard().hasLost() || getBoard().hasSolved());
+        return (hasWin() || hasLose());
     }
     
     /**
@@ -130,7 +259,51 @@ public class Player extends Sprite
         if (hasGameOver())
             return;
         
-        this.timer.update(time);
+        //update the timer
+        getTimer().update(time);
+        
+        //check if the timer is set to a limit and if the time ran out
+        checkTimer();
+    }
+    
+    /**
+     * Check the timer to verify if time has ran out.
+     */
+    private void checkTimer()
+    {
+        //if the timer is limited
+        if (getTimer().getReset() != 0)
+        {
+            //has the time passed
+            if (getTimer().hasTimePassed())
+            {
+                //if time has passed set time left to 0
+                getTimer().setRemaining(0);
+                
+                //time has ran out the player has lost
+                getBoard().setLose();
+            }
+        }
+    }
+    
+    /**
+     * Set the location of the player and the status screen
+     * @param x
+     * @param y 
+     */
+    @Override
+    public void setLocation(final int x, final int y)
+    {
+        super.setLocation(x, y);
+        
+        //set the location of the status screen relative to the player
+        status.setLocation(super.getX(), super.getY() + super.getHeight() + 5);
+        
+        //set the width to match the player
+        status.setWidth(super.getWidth());
+        
+        //set a fixed height
+        status.setHeight(65);
     }
     
     /**
@@ -143,6 +316,13 @@ public class Player extends Sprite
         if (image == null || super.getImage() == null)
             return;
         
+        //make sure status object exists
+        if (getStatus() != null)
+        {
+            //draw status messages
+            getStatus().render(graphics);
+        }
+        
         //get graphics object for image
         Graphics2D g2d = this.image.createGraphics();
         
@@ -152,12 +332,25 @@ public class Player extends Sprite
         //clear the image so a new one can be drawn
         g2d.clearRect(0, 0, image.getWidth(), image.getHeight());
         
-        if (this.timer != null)
-            g2d.drawString("Timer: " + timer.getDescPassed(Timers.FORMAT_6), this.timerLocation.x, this.timerLocation.y);
+        if (getTimer() != null)
+        {
+            //if there is a reset time present we are counting down the time
+            if (getTimer().getReset() != 0)
+            {
+                g2d.drawString("Timer: " + timer.getDescRemaining(Timers.FORMAT_6), this.timerLocation.x, this.timerLocation.y);
+            }
+            else
+            {
+                g2d.drawString("Timer: " + timer.getDescPassed(Timers.FORMAT_6), this.timerLocation.x, this.timerLocation.y);
+            }
+        }
         
         final int mineCount = getBoard().getMineCount() - getBoard().getFlagCount();
         
-        g2d.drawString("Mines: " + mineCount, this.infoLocation.x, this.infoLocation.y);
+        if (human)
+            g2d.drawString("Human Mines: " + mineCount, this.infoLocation.x, this.infoLocation.y);
+        else
+            g2d.drawString("CPU Mines: " + mineCount, this.infoLocation.x, this.infoLocation.y);
         
         //draw fail icon
         if (getBoard().hasLost())
@@ -172,13 +365,18 @@ public class Player extends Sprite
         
         //draw mouse so we can see
         if (this.mouseLocation != null)
-            drawIcon(g2d, this.mouseLocation, mouseSource);
+            drawMouse(g2d, this.mouseLocation);
         
         //write image to graphics object
         super.draw(graphics, this.image);
         
         //release image resources
         this.image.flush();
+    }
+    
+    protected void drawMouse(final Graphics graphics, final Point d)
+    {
+        drawIcon((Graphics2D)graphics, d, mouseSource);
     }
     
     /**

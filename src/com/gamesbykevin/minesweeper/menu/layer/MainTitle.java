@@ -19,7 +19,7 @@ public final class MainTitle extends Layer implements LayerRules
     public MainTitle(final Engine engine) throws Exception
     {
         //the layer will have the given transition and screen size
-        super(Layer.Type.SCROLL_HORIZONTAL_WEST_REPEAT, engine.getMain().getScreen());
+        super(Layer.Type.NONE, engine.getMain().getScreen());
         
         //this layer will have a title at the top
         setTitle(Shared.GAME_NAME);
@@ -30,11 +30,11 @@ public final class MainTitle extends Layer implements LayerRules
         //we will not force this layer to show
         setForce(false);
         
-        //we do not want to pause this layer once it completes
+        //we want to pause this layer once it completes
         setPause(true);
         
         //this layer will be active for x seconds
-        setTimer(new Timer(Timers.toNanoSeconds(2500L)));
+        //setTimer(new Timer(Timers.toNanoSeconds(2500L)));
         
         //since there are options how big should the container be
         setOptionContainerRatio(RATIO);

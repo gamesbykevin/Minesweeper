@@ -17,7 +17,7 @@ public class GameImage extends ImageManager
     
     public enum Keys
     {
-        Original
+        Original, Background
     }
     
     public GameImage() throws Exception

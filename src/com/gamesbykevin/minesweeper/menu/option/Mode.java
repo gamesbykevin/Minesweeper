@@ -13,11 +13,17 @@ public final class Mode extends Option
     
     public enum Types
     {
-        //roam the hero can move freely
-        Roam, 
+        //Play at your convenience
+        Free, 
         
-        //text mode the hero spells words to advance
-        Text
+        //Solve the puzzle within the time limit
+        Timed,
+        
+        // or Play against the computer
+        Versus,
+        
+        //you and the computer play against each other and first to solve 5 puzzles without dying wins
+        Race,
     }
     
     public Mode(final Audio audio)
@@ -29,7 +35,7 @@ public final class Mode extends Option
             super.add(types.toString(), audio);
         }
         
-        //default to roam
+        //default to free
         super.setIndex(0);
     }
 }

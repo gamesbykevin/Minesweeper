@@ -31,7 +31,9 @@ public final class CustomMenu extends Menu implements IElement
         Sound, FullScreen, StartGame, Options, Controls, Instructions, Credits, GoBack, Resume, 
         NewGame, ExitGame, NewGameConfim, NewGameDeny, ExitGameConfirm, ExitGameDeny, 
         
-        Mode
+        OpponentDifficulty,
+        BoardDifficulty,
+        Mode,
     } 
     
     //unique key to indentify each Layer
@@ -40,7 +42,7 @@ public final class CustomMenu extends Menu implements IElement
         Title, Credits, MainTitle, Options, OptionsInGame, 
         NewGameConfirm, ExitGameConfirm, NoFocus, StartGame, NewGameConfirmed, 
         Controls1,  
-        Instructions1,  
+        Instructions1, Instructions2, 
     }
     
     /**
@@ -72,12 +74,21 @@ public final class CustomMenu extends Menu implements IElement
         super.add(LayerKey.Options,         new Options(engine));
         super.add(LayerKey.Controls1,       new Controls1(engine));
         super.add(LayerKey.Instructions1,   new Instructions1(engine));
+        super.add(LayerKey.Instructions2,   new Instructions2(engine));
         super.add(LayerKey.OptionsInGame,   new OptionsInGame(engine));
         super.add(LayerKey.NewGameConfirm,  new NewGameConfirm(engine));
         super.add(LayerKey.ExitGameConfirm, new ExitGameConfirm(engine));
         super.add(LayerKey.NoFocus,         new NoFocus(engine));
         super.add(LayerKey.StartGame,       new StartGame(engine));
         super.add(LayerKey.NewGameConfirmed,new NewGameConfirmed(engine));
+        
+        //make sure each layer has been added to the menu
+        for (LayerKey key: LayerKey.values())
+        {
+            //if the Layer does not exist
+            if (!hasLayer(key))
+                throw new Exception("Layer with corresponding key (" + key.toString() + ") has not been added to menu yet.");
+        }
         
         //set the first layer
         super.setLayer(LayerKey.Title);
