@@ -17,7 +17,7 @@ public final class OpponentDifficulty extends Option
         Slow(150),
         Medium(100),
         Fast(75),
-        Impossible(.05);
+        Impossible(10);
         
         private long delay;
         
