@@ -122,7 +122,7 @@ public final class CustomMenu extends Menu implements IElement
             //if on the options screen check if sound/fullScreen enabled
             if (super.hasCurrent(LayerKey.Options))
             {
-                tmpSound = Toggle.values()[getOptionSelectionIndex(LayerKey.Options, OptionKey.Sound)];
+                //tmpSound = Toggle.values()[getOptionSelectionIndex(LayerKey.Options, OptionKey.Sound)];
                 tmpFullWindow = Toggle.values()[getOptionSelectionIndex(LayerKey.Options, OptionKey.FullScreen)];
             }
             

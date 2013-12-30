@@ -18,7 +18,7 @@ public final class Credits extends Layer implements LayerRules
         setImage(engine.getResources().getMenuImage(MenuImage.Keys.Credits));
         
         //should we force the user to view this layer
-        setForce(false);
+        setForce(true);
         
         //when the layer is complete should we transition to the next or pause
         setPause(false);

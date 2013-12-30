@@ -27,7 +27,6 @@ public final class Manager implements IElement
     
     //random number generator object
     private Random random = new Random(seed);
-    //private Random random = new Random(30434406877967L);
     
     //our player object
     private Human human;
@@ -48,13 +47,16 @@ public final class Manager implements IElement
     private boolean gameover = false;
     
     //the number of wins needed when playing race mode
-    private static final int WIN_LIMIT = 100;
+    private static final int DEFAULT_WIN_LIMIT_RACE = 5;
     
-    private int TEMPORARY_LOSS_COUNT = 0;
+    //the default number of wins needed
+    private static final int DEFAULT_WIN_LIMIT = 1;
     
-    //status message that notifys the user how to access the menu
+    //the number of wins required to win the game
+    private final int limit;
+    
+    //default status messages
     private static final String DEFAULT_MENU_STATUS_MESSAGE = "Hit \"Esc\" for menu";
-    
     private static final String HIT_MINE_DEFAULT_MESSAGE = "Hit mine. Board reset";
     
     /**
@@ -151,6 +153,18 @@ public final class Manager implements IElement
                 break;
         }
         
+        //determine the win limit based on the game mode
+        switch(mode)
+        {
+            case Race:
+                this.limit = DEFAULT_WIN_LIMIT_RACE;
+                break;
+                
+            default:
+                this.limit = DEFAULT_WIN_LIMIT;
+                break;
+        }
+        
         //create new player
         human = new Human(width, height);
         
@@ -179,7 +193,16 @@ public final class Manager implements IElement
         //play new game sound effect
         engine.getResources().playGameAudio(GameAudio.Keys.NewGame);
         
-        System.out.println("Seed - " + seed);
+        //System.out.println("Seed - " + seed);
+    }
+    
+    /**
+     * The number of wins required to win the game
+     * @return # of wins
+     */
+    private int getWinLimit()
+    {
+        return this.limit;
     }
     
     /**
@@ -261,232 +284,143 @@ public final class Manager implements IElement
      */
     private void checkMode(final Resources resources)
     {
-        //if there is a computer agent preset we are either playing versus or race
-        if (agent != null)
+        switch (mode)
         {
-            switch (mode)
-            {
-                case Versus:
-                    
-                    //if the human has a game over check for win/lose
-                    if (human.hasGameOver())
+            case Free:
+            case Timed:
+
+                if (human.hasGameOver())
+                {
+                    //mark game over
+                    flagGameOver();
+
+                    if (human.hasWin())
                     {
-                        if (human.hasWin())
+                        //play sound effect
+                        resources.playGameAudio(GameAudio.Keys.Win);
+
+                        //add status message
+                        human.addStatusMessage("Winner");
+                    }
+                    else
+                    {
+                        //play sound effect
+                        resources.playGameAudio(GameAudio.Keys.Lose);
+
+                        //if the time is counting down and time has passed
+                        if (human.getTimer().getReset() != 0 && human.getTimer().hasTimePassed())
                         {
-                            //play sound effect
-                            resources.playGameAudio(GameAudio.Keys.Win);
-                            
                             //add status message
-                            human.addStatusMessage("You win");
+                            human.addStatusMessage("You lose, times up");
+                        }
+                        else
+                        {
+                            //add status message
+                            human.addStatusMessage("You lose");
+                        }
+                    }
+                    
+                    //add status message
+                    human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
+                }
+                break;
+
+            case Versus:
+            case Race:
+
+                //check if the human has won/lost
+                if (human.hasGameOver())
+                {
+                    if (human.hasWin())
+                    {
+                        //play sound effect
+                        resources.playGameAudio(GameAudio.Keys.Win);
+
+                        //increase the win count and create a new board
+                        human.increaseWins();
+
+                        //add status message
+                        human.addStatusMessage("Solved. Wins: " + human.getWins());
+
+                        //if the human has reached the number of wins then the agent has lost the game
+                        if (human.getWins() >= getWinLimit())
+                        {
+                            //add status message
+                            agent.addStatusMessage("Human won. Game Over");
+                            human.addStatusMessage("Winner");
                             human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
-                            
+
                             //mark flag so correct icon is displayed
                             agent.markLose();
 
                             //mark game over
                             flagGameOver();
                         }
-
-                        if (human.hasLose())
-                        {
-                            //play sound effect
-                            resources.playGameAudio(GameAudio.Keys.Lose);
-                            
-                            //add status message
-                            agent.addStatusMessage("CPU wins");
-                            human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
-                            
-                            //mark flag so correct icon is displayed
-                            agent.markWin();
-
-                            //mark game over
-                            flagGameOver();
-                        }
-                    }
-                    else
-                    {
-                        //if the agent has a game over check for win/lose
-                        if (agent.hasGameOver())
-                        {
-                            if (agent.hasWin())
-                            {
-                                //play sound effect
-                                resources.playGameAudio(GameAudio.Keys.Lose);
-                                
-                                //add status message
-                                agent.addStatusMessage("CPU wins");
-                                human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
-                                
-                                //mark flag so correct icon is displayed
-                                human.markLose();
-
-                                //mark game over
-                                flagGameOver();
-                            }
-
-                            if (agent.hasLose())
-                            {
-                                //play sound effect
-                                resources.playGameAudio(GameAudio.Keys.Win);
-                                
-                                //add status message
-                                agent.addStatusMessage("Hit Mine");
-                                human.addStatusMessage("You win");
-                                human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
-                                
-                                //mark flag so correct icon is displayed
-                                human.markWin();
-
-                                //mark game over
-                                flagGameOver();
-                            }
-                        }
-                    }
-                    break;
-
-                case Race:
-
-                    //check if the human has won/lost
-                    if (human.hasGameOver())
-                    {
-                        if (human.hasWin())
-                        {
-                            //play sound effect
-                            resources.playGameAudio(GameAudio.Keys.Win);
-                            
-                            //increase the win count and create a new board
-                            human.increaseWins();
-                            
-                            //add status message
-                            human.addStatusMessage("Solved puzzle. Wins: " + human.getWins());
-                            
-                            //if the human has reached the number of wins then the agent has lost the game
-                            if (human.getWins() >= WIN_LIMIT)
-                            {
-                                //add status message
-                                agent.addStatusMessage("You won. Game Over");
-                                human.addStatusMessage("Winner");
-                                human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
-                                
-                                //mark flag so correct icon is displayed
-                                agent.markLose();
-
-                                //mark game over
-                                flagGameOver();
-                            }
-                            else
-                            {
-                                //else generate a new board
-                                human.reset(random);
-                            }
-                        }
                         else
                         {
-                            //add status message
-                            human.addStatusMessage(HIT_MINE_DEFAULT_MESSAGE);
-                            
-                            //reset board
+                            //else generate a new board
                             human.reset(random);
                         }
                     }
                     else
                     {
-                        //check if the agent has won/lost
-                        if (agent.hasGameOver())
-                        {
-                            if (agent.hasWin())
-                            {
-                                //increase the win count and create a new board
-                                agent.increaseWins();
-                                
-                                //add status message
-                                agent.addStatusMessage("Solved. Wins: " + agent.getWins());
-                                
-                                System.out.println("Win: " + agent.getWins() + ", Loss: " + this.TEMPORARY_LOSS_COUNT);
-                                
-                                //if the agent has reached the number of wins then the human has lost the game
-                                if (agent.getWins() >= WIN_LIMIT)
-                                {
-                                    //add status message
-                                    agent.addStatusMessage("CPU won. Game Over");
-                                    human.addStatusMessage("Loser");
-                                    human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
-                                    
-                                    //mark flag so correct icon is displayed
-                                    human.markLose();
+                        //add status message
+                        human.addStatusMessage(HIT_MINE_DEFAULT_MESSAGE);
 
-                                    //mark game over
-                                    flagGameOver();
-                                    
-                                    //play sound effect
-                                    resources.playGameAudio(GameAudio.Keys.Lose);
-                                }
-                                else
-                                {
-                                    //play sound effect
-                                    resources.playGameAudio(GameAudio.Keys.Win);
-                                
-                                    //generate a new board
-                                    agent.reset(random);
-                                }
-                            }
-                            else
-                            {
-                                TEMPORARY_LOSS_COUNT++;
-                                
-                                System.out.println("Win: " + agent.getWins() + ", Loss: " + this.TEMPORARY_LOSS_COUNT);
-                                
-                                //add status message
-                                agent.addStatusMessage(HIT_MINE_DEFAULT_MESSAGE);
-
-                                //reset board
-                                agent.reset(random);
-                                
-                                
-                            }
-                        }
+                        //reset board
+                        human.reset(random);
                     }
-                    break;
-            }
-        }
-        else
-        {
-            //if there is no opponent we are playing single player human
-            if (human.hasGameOver())
-            {
-                //mark game over
-                flagGameOver();
-                
-                if (human.hasWin())
-                {
-                    //play sound effect
-                    resources.playGameAudio(GameAudio.Keys.Win);
-                    
-                    //add status message
-                    human.addStatusMessage("Winner");
-                    human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
                 }
                 else
                 {
-                    //play sound effect
-                    resources.playGameAudio(GameAudio.Keys.Lose);
-                    
-                    //if the time is counting down and time has passed
-                    if (human.getTimer().getReset() != 0 && human.getTimer().hasTimePassed())
+                    //check if the agent has won/lost
+                    if (agent.hasGameOver())
                     {
-                        //add status message
-                        human.addStatusMessage("You lose, times up");
+                        if (agent.hasWin())
+                        {
+                            //increase the win count and create a new board
+                            agent.increaseWins();
+
+                            //add status message
+                            agent.addStatusMessage("Solved. Wins: " + agent.getWins());
+
+                            //if the agent has reached the number of wins then the human has lost the game
+                            if (agent.getWins() >= getWinLimit())
+                            {
+                                //add status message
+                                agent.addStatusMessage("CPU won. Game Over");
+                                human.addStatusMessage("Loser");
+                                human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
+
+                                //mark flag so correct icon is displayed
+                                human.markLose();
+
+                                //mark game over
+                                flagGameOver();
+
+                                //play sound effect
+                                resources.playGameAudio(GameAudio.Keys.Lose);
+                            }
+                            else
+                            {
+                                //play sound effect
+                                resources.playGameAudio(GameAudio.Keys.Win);
+
+                                //generate a new board
+                                agent.reset(random);
+                            }
+                        }
+                        else
+                        {
+                            //add status message
+                            agent.addStatusMessage(HIT_MINE_DEFAULT_MESSAGE);
+
+                            //reset board
+                            agent.reset(random);
+                        }
                     }
-                    else
-                    {
-                        //add status message
-                        human.addStatusMessage("You lose");
-                    }
-                    
-                    //add status message
-                    human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
                 }
-            }
+                break;
         }
     }
     

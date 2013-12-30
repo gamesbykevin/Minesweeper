@@ -173,14 +173,6 @@ public final class Agent extends Player implements IPlayer
      */
     private void determineNextSteps(final Random random)
     {
-        /**
-         * Logic to solving the board
-         * 1. Check if any completed tiles can be flagged as mines
-         * 2. Check for any tiles that are safe to select.
-         * 3. If we reach this step, locate which tile has the lowest % of being a mine
-         * 4. If all else fails we will have to select a random tile
-         */
-        
         //get list of completed tiles
         List<Tile> choices = getBoard().getCompletedTiles();
         
@@ -194,146 +186,13 @@ public final class Agent extends Player implements IPlayer
         if (!steps.hasSteps())
         {
             //check how many mines remain and through process of elimination locate any more safe locations
-            //locateRemainingMines(choices);
+            //TODO HERE
             
             //if we still haven't found any steps
             if (!steps.hasSteps())
             {
                 //locate an available tile with the lowest probability of selecting a mine
                 checkProbability(random);
-            }
-        }
-    }
-    
-    /**
-     * Through the process of elimination we will check all completed tiles.<br>
-     * We will check those tiles to determine how many border tiles still exist that could be a mine.<br>
-     * We will count all of the mines that border the completed tiles.<br>
-     * If the count equals the # of remaining mines on the board that aren't flagged<br>
-     * then any tile that does not border a completed tile is safe to choose.<br>
-     * @param choices List of completed tiles
-     */
-    private void locateRemainingMines(final List<Tile> choices)
-    {
-        //first get the count of remaining mines that are hidden
-        final int remainingMines = getBoard().getRemainingMineCount();
-        
-        //how many existing mines can we verify still exist from the completed tiles
-        int remainingCount = 0;
-        
-        //list containing dangerous tiles
-        List<Tile> dangerous = new ArrayList<>();
-        
-        //now we need to find out how to determine if all the remaining mines border completed tiles
-        for (Tile tile : choices)
-        {
-            if (tile.getNumberCount() == 0)
-                continue;
-            
-            //count how many mines are still hidden
-            int existing = getExistingMinesCount(tile);
-            
-            //if this tile does not have any, skip to the next tile
-            if (existing == 0)
-                continue;
-            
-            //if we are at this point then mines still exist so get a list of those possible tiles
-            List<Tile> possible = getBoard().getAvailableNonFlaggedTiles(tile);
-            
-            //if the list is empty continue to the next tile
-            if (possible.isEmpty())
-                continue;
-            
-            //does a tile in the possible list match a tile in the dangerous list
-            boolean foundMatch = false;
-            
-            //count how many tiles that we find match
-            int countMatch = 0;
-            
-            //check if any of the tiles exist already in our dangerous list
-            for (Tile tmp1 : possible)
-            {
-                if (!dangerous.isEmpty())
-                {
-                    final int size = dangerous.size();
-                    
-                    for (int index = 0; index < size; index++)
-                    {
-                        Tile tmp2 = dangerous.get(index);
-                        
-                        if (tmp1.equals(tmp2))
-                        {
-                            foundMatch = true;
-                            countMatch++;
-                        }
-                        else
-                        {
-                            //if it doesn't exist add to our list
-                            dangerous.add(tmp1);
-                        }
-                    }
-                }
-                else
-                {
-                    dangerous.add(tmp1);
-                }
-            }
-            
-            //if no match was found add the existing to our total count
-            if (!foundMatch)
-            {
-                //if none of the possible tiles exist in the dangerous list, lets add the existing mine count to our total count
-                remainingCount += existing;
-            }
-            else
-            {
-                //if the match count was less than the existing count we can still add the difference
-                if (countMatch < existing)
-                {
-                    remainingCount += (existing - countMatch);
-                }
-            }
-        }
-        
-        if (remainingCount < remainingMines)
-        {
-            System.out.println("Count is smalller. remainingCount=" + remainingCount + ", remainingMines=" + remainingMines);
-            return;
-        }
-        
-        if (remainingCount > remainingMines)
-        {
-            System.out.println("Count is larger than remaining which shouldn't be.");
-            return;
-        }
-        
-        System.out.println("Count is equal.");
-        
-        //this is our list of possible selections
-        List<Tile> tiles = getBoard().getAvailableTiles();
-        
-        //at this point we only want the available tiles that do not border a completed tile
-        for (int index = 0; index < tiles.size(); index++)
-        {
-            //get the current Tile
-            Tile tile = tiles.get(index);
-            
-            //if there are completed tiles bordering this tile remove it from the choices list
-            if (!getBoard().getCompletedTiles(tile).isEmpty())
-            {
-                tiles.remove(index);
-                index--;
-                continue;
-            }
-        }
-        
-        //if there are remaining choices then these are safe selections
-        if (!tiles.isEmpty())
-        {
-            //add the remaining choices to our steps
-            for (Tile tile : tiles)
-            {
-                steps.add(tile, State.Blank);
             }
         }
     }

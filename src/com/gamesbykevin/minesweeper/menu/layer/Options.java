@@ -43,7 +43,10 @@ public final class Options extends Layer implements LayerRules
         super.add(OptionKey.BoardDifficulty,        new BoardDifficulty(audio));
         super.add(OptionKey.Mode,                   new Mode(audio));
         super.add(OptionKey.OpponentDifficulty,     new OpponentDifficulty(audio));
-        super.add(OptionKey.Sound,                  new Sound(audio));
+        
+        //don't add sound option for now
+        //super.add(OptionKey.Sound,                  new Sound(audio));
+        
         super.add(OptionKey.FullScreen,             new FullScreen(audio));
         super.add(OptionKey.GoBack,                 new OptionsGoBack());
         

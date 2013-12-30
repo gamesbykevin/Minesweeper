@@ -25,6 +25,10 @@ public final class BoardDifficulty extends Option
         
         private long delay;
         
+        /**
+         * New selection
+         * @param delay The time delay if the player plays timed mode.
+         */
         private Selections(final long delay)
         {
             this.delay = Timers.toNanoSeconds(delay);
