@@ -27,6 +27,7 @@ public final class Manager implements IElement
     
     //random number generator object
     private Random random = new Random(seed);
+    //private Random random = new Random(30434406877967L);
     
     //our player object
     private Human human;
@@ -47,7 +48,7 @@ public final class Manager implements IElement
     private boolean gameover = false;
     
     //the number of wins needed when playing race mode
-    private static final int WIN_LIMIT = 1000;
+    private static final int WIN_LIMIT = 100;
     
     private int TEMPORARY_LOSS_COUNT = 0;
     
@@ -329,6 +330,7 @@ public final class Manager implements IElement
                                 resources.playGameAudio(GameAudio.Keys.Win);
                                 
                                 //add status message
+                                agent.addStatusMessage("Hit Mine");
                                 human.addStatusMessage("You win");
                                 human.addStatusMessage(DEFAULT_MENU_STATUS_MESSAGE);
                                 

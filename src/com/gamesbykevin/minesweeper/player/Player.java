@@ -6,6 +6,7 @@ import com.gamesbykevin.framework.util.Timer;
 import com.gamesbykevin.framework.util.Timers;
 
 import com.gamesbykevin.minesweeper.board.Board;
+import java.awt.Font;
 
 import java.awt.image.BufferedImage;
 import java.awt.Graphics;
@@ -327,7 +328,7 @@ public abstract class Player extends Sprite implements Disposable
         Graphics2D g2d = this.image.createGraphics();
         
         //set parent font
-        g2d.setFont(graphics.getFont());
+        g2d.setFont(graphics.getFont().deriveFont(Font.BOLD, 18f));
         
         //clear the image so a new one can be drawn
         g2d.clearRect(0, 0, image.getWidth(), image.getHeight());
@@ -376,7 +377,11 @@ public abstract class Player extends Sprite implements Disposable
     
     protected void drawMouse(final Graphics graphics, final Point d)
     {
-        drawIcon((Graphics2D)graphics, d, mouseSource);
+        //only draw the mouse if the game is over
+        if (!hasGameOver())
+        {
+            drawIcon((Graphics2D)graphics, d, mouseSource);
+        }
     }
     
     /**

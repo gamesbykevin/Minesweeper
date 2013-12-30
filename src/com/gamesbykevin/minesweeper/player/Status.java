@@ -20,7 +20,7 @@ public class Status extends Sprite implements Disposable
     private static final int MESSAGE_LIMIT = 4;
     
     //initial startup message
-    private static final String INITIAL_MESSAGE = "Game Begin.";
+    private static final String INITIAL_MESSAGE = "Game Begin";
     
     public Status()
     {

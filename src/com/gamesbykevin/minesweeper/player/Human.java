@@ -75,7 +75,7 @@ public final class Human extends Player implements IPlayer
         if (mouse.isMouseReleased())
         {
             //update the board accordingly
-            getBoard().updateReleased(getMouseLocation(), engine.getResources());
+            getBoard().updateReleased(getMouseLocation(), engine.getResources(), engine.getManager().getRandom());
             
             //reset mouse events
             mouse.reset();

@@ -63,7 +63,7 @@ public final class Board extends Sprite implements Disposable
     {
         super.dispose();
         
-        for (Tile tile : tiles)
+        for (Tile tile : getTiles())
         {
             if (tile != null)
                 tile.dispose();
@@ -88,32 +88,86 @@ public final class Board extends Sprite implements Disposable
         //clear list of tiles
         this.tiles.clear();
         
-        //each spot will be added to this list to determine possible mine locations
-        List<Cell> cells = new ArrayList<>();
-        
         for (int row = 0; row < rows; row++)
         {
             for (int column = 0; column < columns; column++)
             {
-                final Cell cell = new Cell(column, row);
-                
-                //add location to the list
-                cells.add(cell);
-                
                 //create new tile
                 Tile tile = new Original();
                 
                 //set location of tile
-                tile.setCol(cell);
-                tile.setRow(cell);
+                tile.setCol(column);
+                tile.setRow(row);
                 
                 //add tile to list
                 tiles.add(tile);
             }
         }
         
+        //place the mines on the board
+        placeMines(random);
+    }
+    
+    /**
+     * Place the mines at random locations on the board
+     * @param random Object used to make random decisions
+     */
+    private void placeMines(final Random random)
+    {
+        placeMines(random, null);
+    }
+    
+    /**
+     * Place the mines at random locations on the board
+     * @param random Object used to make random decisions
+     * @param ignore List of tiles we won't allow to be mines
+     */
+    private void placeMines(final Random random, List<Tile> tiles)
+    {
         //here we will count how many mines we have added
         int count = 0;
+        
+        //each spot will be added to this list to determine possible mine locations
+        List<Cell> cells = new ArrayList<>();
+        
+        //add all possible locations to list
+        for (int row = 0; row < rows; row++)
+        {
+            for (int column = 0; column < columns; column++)
+            {
+                if (getTile(column, row).isMine())
+                {
+                    //keep track of how many mines may already exist
+                    count++;
+                }
+                else
+                {
+                    //add location to the list
+                    cells.add(new Cell(column, row));
+                }
+            }
+        }
+        
+        //remove any locations from our list if they are to be ignored
+        if (tiles != null && !tiles.isEmpty())
+        {
+            for (Tile tile : tiles)
+            {
+                for (int index = 0; index < cells.size(); index++)
+                {
+                    Cell cell = cells.get(index);
+                    
+                    if (tile.equals(cell))
+                    {
+                        //remove cell from our list
+                        cells.remove(index);
+                        
+                        //start checking next element
+                        break;
+                    }
+                }
+            }
+        }
         
         //continue until we have all our mines created
         while (count < mines)
@@ -130,6 +184,9 @@ public final class Board extends Sprite implements Disposable
             //increase our count so we know when we have added enough mines
             count++;
         }
+        
+        cells.clear(); 
+        cells = null;
     }
     
     public int getRowCount()
@@ -150,7 +207,7 @@ public final class Board extends Sprite implements Disposable
      */
     public void setLocations(final int startX, final int startY)
     {
-        for (Tile tile : tiles)
+        for (Tile tile : getTiles())
         {
             tile.setX(startX + (tile.getCol() * tile.getWidth()));
             tile.setY(startY + (tile.getRow() * tile.getHeight()));
@@ -175,13 +232,32 @@ public final class Board extends Sprite implements Disposable
      */
     public Tile getTile(final double column, final double row)
     {
-        for (Tile tile : tiles)
+        for (Tile tile : getTiles())
         {
             if ((int)tile.getCol() == column && (int)tile.getRow() == row)
                 return tile;
         }
         
         return null;
+    }
+    
+    /**
+     * Determine if this is a brand new board with no tiles selected/flagged.
+     * @return True if untouched, false otherwise
+     */
+    public boolean hasNewBoard()
+    {
+        //if the amount of available tiles equals the total size of tiles then the board is untouched
+        return (getAvailableTiles().size() == getTiles().size());
+    }
+    
+    /**
+     * Get the list of all the tiles in the board
+     * @return List of tiles
+     */
+    private List<Tile> getTiles()
+    {
+        return this.tiles;
     }
     
     /**
@@ -193,7 +269,7 @@ public final class Board extends Sprite implements Disposable
         //possible random choices
         List<Tile> choices = new ArrayList<>();
         
-        for (Tile tile : tiles)
+        for (Tile tile : getTiles())
         {
             //if tile is not completed and it is not flagged then we have a valid choice
             if (!tile.isCompleted() && !tile.isFlagged())
@@ -213,7 +289,7 @@ public final class Board extends Sprite implements Disposable
         //possible random choices
         List<Tile> choices = new ArrayList<>();
         
-        for (Tile tile : tiles)
+        for (Tile tile : getTiles())
         {
             //if this tile is completed and there are available neighbors this tile is good
             if (tile.isCompleted())
@@ -225,8 +301,46 @@ public final class Board extends Sprite implements Disposable
     }
     
     /**
+     * Get list of completed neighbor tiles
+     * @param tile The tile that we want to check the neighbors
+     * @return List of tiles that neighbor the parameter tile that are completed
+     */
+    public List<Tile> getCompletedTiles(final Tile tile)
+    {
+        List<Tile> choices = new ArrayList<>();
+        
+        for (Tile tmp : getAdjacentTiles(tile))
+        {
+            if (tmp.isCompleted())
+                choices.add(tmp);
+        }
+        
+        //return our result
+        return choices;
+    }
+    
+    /**
+     * Get list of available neighbor tiles that are not flagged
+     * @param tile The tile that we want to check the neighbors
+     * @return List of tiles that are not marked as completed and are not flagged
+     */
+    public List<Tile> getAvailableNonFlaggedTiles(final Tile tile)
+    {
+        List<Tile> choices = new ArrayList<>();
+        
+        for (Tile tmp : getAdjacentTiles(tile))
+        {
+            if (!tmp.isCompleted() && !tmp.isFlagged())
+                choices.add(tmp);
+        }
+        
+        //return our result
+        return choices;
+    }
+    
+    /**
      * Get list of available neighbor tiles even if they are flagged
-     * @param tile The that we want to check the neighbors
+     * @param tile The tile that we want to check the neighbors
      * @return List of tiles that are not marked as completed
      */
     public List<Tile> getAvailableTiles(final Tile tile)
@@ -244,7 +358,8 @@ public final class Board extends Sprite implements Disposable
     }
     
     /**
-     * Get the list of neighboring tiles.<br>Doesn't matter if the tile is complete or flagged etc...
+     * Get the list of neighboring tiles.<br>
+     * Doesn't matter if the tile is complete or flagged etc...
      * @param tile
      * @return 
      */
@@ -298,7 +413,7 @@ public final class Board extends Sprite implements Disposable
      */
     public void updateRightReleased(final Point point, final Resources resources) throws Exception
     {
-        for (Tile tile : tiles)
+        for (Tile tile : getTiles())
         {
             //tile can no longer be selected
             if (tile.isCompleted())
@@ -342,9 +457,9 @@ public final class Board extends Sprite implements Disposable
         }
     }
     
-    public void updateReleased(final Point point, final Resources resources) throws Exception
+    public void updateReleased(final Point point, final Resources resources, final Random random) throws Exception
     {
-        for (Tile tile : tiles)
+        for (Tile tile : getTiles())
         {
             if (tile.isCompleted() || tile.isFlagged())
                 continue;
@@ -362,81 +477,109 @@ public final class Board extends Sprite implements Disposable
                     return;
                 }
                 
-                //did the player select a mine
-                if (tile.isMine())
+                //if the board is new we don't want our first selection to be a mine
+                if (hasNewBoard())
                 {
-                    //game is over, board has hit mine
-                    setLose();
+                    //we don't want the first selection to be a mine
+                    tile.setMine(false);
+
+                    //list of safe tiles where we do not want to place a mine
+                    List<Tile> ignore = getAdjacentTiles(tile);
                     
-                    //mark all tiles as completed
-                    setCompleted();
+                    //we will also make the first selection open up an area to get started
+                    for (Tile tmp : ignore)
+                    {
+                        tmp.setMine(false);
+                    }
                     
-                    //markt the tile we selected so we know
-                    tile.setState(Tile.State.MineSelection);
+                    //also add our current tile to the ignore list so it will not be a mine
+                    ignore.add(tile);
                     
+                    /**
+                     * Some of the neighbors we set to not be a mine may 
+                     * have been so we need to find new locations for those mines.
+                     */
+                    placeMines(random, ignore);
+                }
+                
+                //select our tile
+                selectTile(tile);
+                
+                //if the player hit a mine the player loses
+                if (tile.isMine())
                     break;
+                
+                if (tile.getNumberCount() > 0)
+                {
+                    //play sound effect
+                    resources.playGameAudio(Keys.SelectTile);
                 }
                 else
                 {
-                    //get adjacent count
-                    final int count = getAdjacentMineCount(tile);
+                    //play sound effect
+                    resources.playGameAudio(Keys.Opening);
                     
-                    //mark as completed so we can no longer select again
-                    tile.setCompleted(count);
-                    
-                    if (count == 0)
+                    //list of tiles to check
+                    List<Tile> check = new ArrayList<>();
+
+                    //add tile to list
+                    check.add(tile);
+
+                    //continue until we have selected all open tiles
+                    while (!check.isEmpty())
                     {
-                        //play sound effect
-                        resources.playGameAudio(Keys.Opening);
-                    }
-                    else
-                    {
-                        //play sound effect
-                        resources.playGameAudio(Keys.SelectTile);
-                    }
-                    
-                    //if this is a blank tile we need to open the tiles up around it
-                    if (count == 0)
-                    {
-                        //list of tiles to check
-                        List<Tile> check = new ArrayList<>();
-                        
-                        //add tile to list
-                        check.add(tile);
-                        
-                        while (!check.isEmpty())
+                        //get a list of the tiles neighbors from the first tile in our list
+                        final List<Tile> neighbors = getAdjacentTiles(check.get(0));
+
+                        for (Tile tmp : neighbors)
                         {
-                            //get the first tile to check in our list
-                            Tile tmp = check.get(0);
-                            
-                            final List<Tile> neighbors = getAdjacentTiles(tmp);
-                            
-                            for (Tile tmp1 : neighbors)
+                            //make sure the tile has not already been completed
+                            if (!tmp.isCompleted())
                             {
-                                //make sure the tile has not already been completed
-                                if (!tmp1.isCompleted())
-                                {
-                                    //get the total mine count
-                                    final int tmpCount = getAdjacentMineCount(tmp1);
-
-                                    //if there are no mines add to our list to check also
-                                    if (tmpCount == 0)
-                                        check.add(tmp1);
-
-                                    //mark this tile as complete
-                                    tmp1.setCompleted(tmpCount);
-                                }
+                                //select the tile
+                                selectTile(tmp);
+                                
+                                //if this tile also has no mines we will need to check its neighbors
+                                if (tmp.getNumberCount() == 0)
+                                    check.add(tmp);
                             }
-                            
-                            //remove tile from list of things to check
-                            check.remove(0);
                         }
+
+                        //now that step is completed remove first tile from list
+                        check.remove(0);
                     }
-                    
-                    //now that we have selected our place check if the board has been solved
-                    checkSolved();
                 }
+                
+                //after our selection check if the board has been solved
+                checkSolved();
             }
+        }
+    }
+    
+    /**
+     * Mark the tile as selected
+     * @param tile 
+     */
+    private void selectTile(final Tile tile) throws Exception
+    {
+        if (tile.isMine())
+        {
+            //game is over, board has hit mine
+            setLose();
+
+            //mark all tiles as completed
+            setCompleted();
+
+            //markt the tile we selected so we know
+            tile.setState(Tile.State.MineSelection);
+        }
+        else
+        {
+            //get adjacent count
+            final int count = getAdjacentMineCount(tile);
+
+            //mark as completed so we can no longer select again
+            tile.setCompleted(count);
         }
     }
     
@@ -480,7 +623,7 @@ public final class Board extends Sprite implements Disposable
     private void checkSolved()
     {
         //check every tile for completion that is not a mine
-        for (Tile tile : tiles)
+        for (Tile tile : getTiles())
         {
             //if tile is a mine
             if (tile.isMine())
@@ -504,7 +647,7 @@ public final class Board extends Sprite implements Disposable
     private void setCompleted()
     {
         //mark all tiles as completed now that the game is over
-        for (Tile tmp : tiles)
+        for (Tile tmp : getTiles())
         {
             tmp.setCompleted();
 
@@ -523,6 +666,16 @@ public final class Board extends Sprite implements Disposable
     }
     
     /**
+     * Determine how many mines still exist.<br>
+     * This is done by taking the total mine count from the number of tiles that have been flagged.
+     * @return Remaining mine count
+     */
+    public int getRemainingMineCount()
+    {
+        return (getMineCount() - getFlagCount());
+    }
+    
+    /**
      * Get the total number of mines
      * @return Mine count
      */
@@ -531,11 +684,15 @@ public final class Board extends Sprite implements Disposable
         return this.mines;
     }
     
+    /**
+     * Count the number of tiles that are flagged.
+     * @return The total number of tiles that are flagged
+     */
     public int getFlagCount()
     {
         int count = 0;
         
-        for (Tile tile : tiles)
+        for (Tile tile : getTiles())
         {
             if (tile.isFlagged())
                 count++;
@@ -546,7 +703,7 @@ public final class Board extends Sprite implements Disposable
     
     public void updatePressed(final Point point)
     {
-        for (Tile tile : tiles)
+        for (Tile tile : getTiles())
         {
             //tile can no longer be selected or is flagged
             if (tile.isCompleted() || tile.isFlagged())
@@ -585,7 +742,7 @@ public final class Board extends Sprite implements Disposable
     
     public void updateDragged(final Point point)
     {
-        for (Tile tile : tiles)
+        for (Tile tile : getTiles())
         {
             //tile can no longer be selected or is flagged
             if (tile.isCompleted() || tile.isFlagged())
@@ -629,7 +786,7 @@ public final class Board extends Sprite implements Disposable
      */
     public void render(final Graphics2D graphics, final Image image)
     {
-        for (Tile tile : tiles)
+        for (Tile tile : getTiles())
         {
             tile.render(graphics, image);
         }

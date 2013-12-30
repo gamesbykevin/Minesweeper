@@ -17,11 +17,11 @@ public final class OpponentDifficulty extends Option
         Slow(150),
         Medium(100),
         Fast(75),
-        Impossible(1);
+        Impossible(.05);
         
         private long delay;
         
-        private Selections(final long delay)
+        private Selections(final double delay)
         {
             this.delay = Timers.toNanoSeconds(delay);
         }
