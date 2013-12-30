@@ -1,7 +1,7 @@
-import com.gamesbykevin.minesweeper.shared.Shared;
 import javax.swing.JApplet;
 
 import com.gamesbykevin.minesweeper.main.Main;
+import com.gamesbykevin.minesweeper.shared.Shared;
 
 /**
  * WE NEED THIS CLASS HERE FOR JAVA APPLETS OUTSIDE A PACKAGE SO IT CAN FIND THE STARTING POINT

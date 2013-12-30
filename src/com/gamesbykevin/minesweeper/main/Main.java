@@ -1,9 +1,9 @@
 package com.gamesbykevin.minesweeper.main;
 
-import com.gamesbykevin.minesweeper.engine.Engine;
 import java.awt.*;
 import javax.swing.*;
 
+import com.gamesbykevin.minesweeper.engine.Engine;
 import com.gamesbykevin.minesweeper.shared.Shared;
 
 public final class Main extends Thread
