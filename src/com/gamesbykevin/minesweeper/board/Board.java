@@ -34,6 +34,10 @@ public final class Board extends Sprite implements Disposable
     //we keep track of board size
     private final int columns, rows;
     
+    //tmp list(s)
+    private List<Cell> tmpCells;
+    //private List<Tile> tmpTiles;
+    
     /**
      * Create a new board of the specified dimensions and total number of mines
      * @param columns
@@ -45,6 +49,9 @@ public final class Board extends Sprite implements Disposable
     {
         //create new list of tiles
         this.tiles = new ArrayList<>();
+        
+        //create temporary list(s)
+        tmpCells = new ArrayList<>();
         
         //track board size
         this.columns = columns;
@@ -73,6 +80,9 @@ public final class Board extends Sprite implements Disposable
         
         tiles.clear();
         tiles = null;
+        
+        tmpCells.clear();
+        tmpCells = null;
     }
     
     /**
@@ -127,8 +137,8 @@ public final class Board extends Sprite implements Disposable
         //here we will count how many mines we have added
         int count = 0;
         
-        //each spot will be added to this list to determine possible mine locations
-        List<Cell> cells = new ArrayList<>();
+        //reset list
+        tmpCells.clear();
         
         //add all possible locations to list
         for (int row = 0; row < rows; row++)
@@ -143,7 +153,7 @@ public final class Board extends Sprite implements Disposable
                 else
                 {
                     //add location to the list
-                    cells.add(new Cell(column, row));
+                    tmpCells.add(new Cell(column, row));
                 }
             }
         }
@@ -153,14 +163,14 @@ public final class Board extends Sprite implements Disposable
         {
             for (Tile tile : tiles)
             {
-                for (int index = 0; index < cells.size(); index++)
+                for (int index = 0; index < tmpCells.size(); index++)
                 {
-                    Cell cell = cells.get(index);
+                    Cell cell = tmpCells.get(index);
                     
                     if (tile.equals(cell))
                     {
                         //remove cell from our list
-                        cells.remove(index);
+                        tmpCells.remove(index);
                         
                         //start checking next element
                         break;
@@ -173,20 +183,17 @@ public final class Board extends Sprite implements Disposable
         while (count < mines)
         {
             //get a random index in our location list
-            final int index = random.nextInt(cells.size());
+            final int index = random.nextInt(tmpCells.size());
             
             //set the random tile to be a mine
-            getTile(cells.get(index)).setMine(true);
+            getTile(tmpCells.get(index)).setMine(true);
             
             //remove the location from the list
-            cells.remove(index);
+            tmpCells.remove(index);
             
             //increase our count so we know when we have added enough mines
             count++;
         }
-        
-        cells.clear(); 
-        cells = null;
     }
     
     public int getRowCount()
@@ -267,17 +274,17 @@ public final class Board extends Sprite implements Disposable
     public List<Tile> getAvailableTiles()
     {
         //possible random choices
-        List<Tile> choices = new ArrayList<>();
+        List<Tile> tmpTiles = new ArrayList<>();
         
         for (Tile tile : getTiles())
         {
             //if tile is not completed and it is not flagged then we have a valid choice
             if (!tile.isCompleted() && !tile.isFlagged())
-                choices.add(tile);
+                tmpTiles.add(tile);
         }
         
         //return our finished list
-        return choices;
+        return tmpTiles;
     }
     
     /**
@@ -287,17 +294,17 @@ public final class Board extends Sprite implements Disposable
     public List<Tile> getCompletedTiles()
     {
         //possible random choices
-        List<Tile> choices = new ArrayList<>();
+        List<Tile> tmpTiles = new ArrayList<>();
         
         for (Tile tile : getTiles())
         {
             //if this tile is completed and there are available neighbors this tile is good
             if (tile.isCompleted())
-                choices.add(tile);
+                tmpTiles.add(tile);
         }
         
         //return our finished list
-        return choices;
+        return tmpTiles;
     }
     
     /**
@@ -307,16 +314,17 @@ public final class Board extends Sprite implements Disposable
      */
     public List<Tile> getCompletedTiles(final Tile tile)
     {
-        List<Tile> choices = new ArrayList<>();
+        //reset list
+        List<Tile> tmpTiles = new ArrayList<>();
         
         for (Tile tmp : getAdjacentTiles(tile))
         {
             if (tmp.isCompleted())
-                choices.add(tmp);
+                tmpTiles.add(tmp);
         }
         
         //return our result
-        return choices;
+        return tmpTiles;
     }
     
     /**
@@ -326,16 +334,17 @@ public final class Board extends Sprite implements Disposable
      */
     public List<Tile> getAvailableNonFlaggedTiles(final Tile tile)
     {
-        List<Tile> choices = new ArrayList<>();
+        //reset list
+        List<Tile> tmpTiles = new ArrayList<>();
         
         for (Tile tmp : getAdjacentTiles(tile))
         {
             if (!tmp.isCompleted() && !tmp.isFlagged())
-                choices.add(tmp);
+                tmpTiles.add(tmp);
         }
         
         //return our result
-        return choices;
+        return tmpTiles;
     }
     
     /**
@@ -345,16 +354,17 @@ public final class Board extends Sprite implements Disposable
      */
     public List<Tile> getAvailableTiles(final Tile tile)
     {
-        List<Tile> choices = new ArrayList<>();
+        //reset list
+        List<Tile> tmpTiles = new ArrayList<>();
         
         for (Tile tmp : getAdjacentTiles(tile))
         {
             if (!tmp.isCompleted())
-                choices.add(tmp);
+                tmpTiles.add(tmp);
         }
         
         //return our result
-        return choices;
+        return tmpTiles;
     }
     
     /**
@@ -365,7 +375,8 @@ public final class Board extends Sprite implements Disposable
      */
     private List<Tile> getAdjacentTiles(final Tile tile)
     {
-        final List<Tile> neighbors = new ArrayList<>();
+        //reset list
+        List<Tile> tmpTiles = new ArrayList<>();
         
         for (int col = -1; col <= 1; col++)
         {
@@ -379,11 +390,11 @@ public final class Board extends Sprite implements Disposable
                 
                 //if the tile exists add it
                 if (tmp != null)
-                    neighbors.add(tmp);
+                    tmpTiles.add(tmp);
             }
         }
         
-        return neighbors;
+        return tmpTiles;
     }
     
     /**
@@ -395,9 +406,7 @@ public final class Board extends Sprite implements Disposable
     {
         int count = 0;
         
-        final List<Tile> neighbors = getAdjacentTiles(tile);
-        
-        for (Tile tmp : neighbors)
+        for (Tile tmp : getAdjacentTiles(tile))
         {
             if (tmp.isMine())
                 count++;
